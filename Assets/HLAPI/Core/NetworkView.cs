@@ -8,7 +8,7 @@ namespace HLAPI
     public class NetworkView : MonoBehaviour
     {
         public Component observed;
-        public Dictionary<string, RpcHandler> rpcs = new();
+        public Dictionary<string, RpcHandler> rpcs { get; private set; } = new();
         public uint netId { get; private set; }
         public string assetId;
         public void SerializeView()
