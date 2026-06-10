@@ -8,6 +8,9 @@ using UnityEngine;
 
 namespace HLAPI
 {
+    /// <summary>
+    /// Modified from MyceliumNetworking and Tom Weiland's TCP/UDP Project
+    /// </summary>
     public class Message : IDisposable
     {
         // Max size of a message, in bytes
@@ -22,27 +25,22 @@ namespace HLAPI
         private int readPos;
 
         /// <summary>Creates a new message with a given ID. Used for sending.</summary>
-        public Message(uint messageId)
+        public Message(uint messageId, bool hasMessageId)
         {
             buffer = new List<byte>(); // Initialize buffer
             readPos = 0; // Set readPos to 0
-            MessageId = messageId;
-            WriteUInt(MessageId);
-        }
-        public Message()
-        {
-            buffer = new List<byte>(); // Initialize buffer
-            readPos = 0; // Set readPos to 0
+            if(hasMessageId) MessageId = messageId;
+            Write(MessageId);
         }
 
         /// <summary>Creates a message from which data can be read. Used for receiving.</summary>
         /// <param name="data">The bytes to add to the message.</param>
-        public Message(byte[] data)
+        public Message(byte[] data, bool hasMessageId)
         {
             buffer = new List<byte>(); // Initialize buffer
             readPos = 0; // Set readPos to 0
 
-            MessageId = ReadUInt();
+            if(hasMessageId)MessageId = ReadUInt();
             SetBytes(data);
         }
 
@@ -100,24 +98,24 @@ namespace HLAPI
         #region Write Data
         /// <summary>Adds a byte to the message.</summary>
         /// <param name="value">The byte to add.</param>
-        public Message WriteByte(byte value)
+        public Message Write(byte value)
         {
             buffer.Add(value);
             return this;
         }
         /// <summary>Adds an array of bytes to the message.</summary>
         /// <param name="value">The byte array to add.</param>
-        public Message WriteBytes(byte[] value)
+        public Message Write(byte[] value)
         {
-            WriteInt(value.Length);
+            Write(value.Length);
             buffer.AddRange(value);
             return this;
         }
         /// <summary>Adds an array of bytes to the message.</summary>
         /// <param name="value">The byte array to add.</param>
-        public Message WriteBools(bool[] value)
+        public Message Write(bool[] value)
         {
-            WriteInt(value.Length);
+            Write(value.Length);
             byte[] bytes = new byte[value.Length];
             for (int i = 0; i < bytes.Length; i++)
             {
@@ -128,98 +126,98 @@ namespace HLAPI
         }
         /// <summary>Adds a short to the message.</summary>
         /// <param name="value">The short to add.</param>
-        public Message WriteShort(short value)
+        public Message Write(short value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a ushort to the message.</summary>
         /// <param name="value">The ushort to add.</param>
-        public Message WriteUShort(ushort value)
+        public Message Write(ushort value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds an int to the message.</summary>
         /// <param name="value">The int to add.</param>
-        public Message WriteInt(int value)
+        public Message Write(int value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a uint to the message.</summary>
         /// <param name="value">The uint to add.</param>
-        public Message WriteUInt(uint value)
+        public Message Write(uint value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Inserts the given int at the start of the message (after the header).</summary>
         /// <param name="value">The int to insert.</param>
-        public Message InsertInt(int value)
+        public Message Insert(int value)
         {
             buffer.InsertRange(1, BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a long to the message.</summary>
         /// <param name="value">The long to add.</param>
-        public Message WriteLong(long value)
+        public Message Write(long value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a ulong to the message.</summary>
         /// <param name="value">The ulong to add.</param>
-        public Message WriteULong(ulong value)
+        public Message Write(ulong value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a float to the message.</summary>
         /// <param name="value">The float to add.</param>
-        public Message WriteFloat(float value)
+        public Message Write(float value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a bool to the message.</summary>
         /// <param name="value">The bool to add.</param>
-        public Message WriteBool(bool value)
+        public Message Write(bool value)
         {
             buffer.AddRange(BitConverter.GetBytes(value));
             return this;
         }
         /// <summary>Adds a string to the message.</summary>
         /// <param name="value">The string to add.</param>
-        public Message WriteString(string value)
+        public Message Write(string value)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
-            WriteInt(bytes.Length); // Add the length of the byte array to the message
+            Write(bytes.Length); // Add the length of the byte array to the message
             buffer.AddRange(bytes); // Add the string itself
             return this;
         }
         /// <summary>Adds a Vector3 to the message.</summary>
         /// <param name="value">The Vector3 to add.</param>
-        public Message WriteVector3(Vector3 value)
+        public Message Write(Vector3 value)
         {
-            WriteFloat(value.x);
-            WriteFloat(value.y);
-            WriteFloat(value.z);
+            Write(value.x);
+            Write(value.y);
+            Write(value.z);
             return this;
         }
         /// <summary>Adds a Quaternion to the message.</summary>
         /// <param name="value">The Quaternion to add.</param>
-        public Message WriteQuaternion(Quaternion value)
+        public Message Write(Quaternion value)
         {
-            WriteFloat(value.x);
-            WriteFloat(value.y);
-            WriteFloat(value.z);
-            WriteFloat(value.w);
+            Write(value.x);
+            Write(value.y);
+            Write(value.z);
+            Write(value.w);
             return this;
         }
 
         /// <summary>Reads an object from the message.</summary>
-        public void WriteObject(Type type, object value)
+        public void Write(Type type, object value)
         {
             if (WriteCasters.TryGetValue(type, out var write))
             {
@@ -233,21 +231,21 @@ namespace HLAPI
 
         Dictionary<Type, Action<Message, object>> WriteCasters = new Dictionary<Type, Action<Message, object>>
         {
-            { typeof(byte), (Message msg, object value) => { msg.WriteByte((byte)value); } },
-            { typeof(byte[]), (Message msg, object value) => { msg.WriteBytes((byte[])value); } },
-            { typeof(bool), (Message msg, object value) => { msg.WriteBool((bool)value); } },
-            { typeof(bool[]), (Message msg, object value) => { msg.WriteBools((bool[])value); } },
-            { typeof(int), (Message msg, object value) => { msg.WriteInt((int)value); } },
-            { typeof(uint), (Message msg, object value) => { msg.WriteUInt((uint)value); } },
-            { typeof(short), (Message msg, object value) => { msg.WriteShort((short)value); } },
-            { typeof(ushort), (Message msg, object value) => { msg.WriteUShort((ushort)value); } },
-            { typeof(long), (Message msg, object value) => { msg.WriteLong((long)value); } },
-            { typeof(ulong), (Message msg, object value) => { msg.WriteULong((ulong)value); } },
-            { typeof(float), (Message msg, object value) => { msg.WriteFloat((float)value); } },
-            { typeof(string), (Message msg, object value) => { msg.WriteString((string)value); } },
-            { typeof(Vector3), (Message msg, object value) => { msg.WriteVector3((Vector3)value); } },
-            { typeof(Quaternion), (Message msg, object value) => { msg.WriteQuaternion((Quaternion)value); } },
-            { typeof(SteamId), (Message msg, object value) => { msg.WriteULong(((SteamId)value).Value); } },
+            { typeof(byte), (Message msg, object value) => { msg.Write((byte)value); } },
+            { typeof(byte[]), (Message msg, object value) => { msg.Write((byte[])value); } },
+            { typeof(bool), (Message msg, object value) => { msg.Write((bool)value); } },
+            { typeof(bool[]), (Message msg, object value) => { msg.Write((bool[])value); } },
+            { typeof(int), (Message msg, object value) => { msg.Write((int)value); } },
+            { typeof(uint), (Message msg, object value) => { msg.Write((uint)value); } },
+            { typeof(short), (Message msg, object value) => { msg.Write((short)value); } },
+            { typeof(ushort), (Message msg, object value) => { msg.Write((ushort)value); } },
+            { typeof(long), (Message msg, object value) => { msg.Write((long)value); } },
+            { typeof(ulong), (Message msg, object value) => { msg.Write((ulong)value); } },
+            { typeof(float), (Message msg, object value) => { msg.Write((float)value); } },
+            { typeof(string), (Message msg, object value) => { msg.Write((string)value); } },
+            { typeof(Vector3), (Message msg, object value) => { msg.Write((Vector3)value); } },
+            { typeof(Quaternion), (Message msg, object value) => { msg.Write((Quaternion)value); } },
+            { typeof(SteamId), (Message msg, object value) => { msg.Write(((SteamId)value).Value); } },
         };
         #endregion
 

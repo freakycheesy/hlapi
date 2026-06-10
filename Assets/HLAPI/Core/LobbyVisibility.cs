@@ -1,6 +1,6 @@
 namespace HLAPI
 {
-    public enum HLLobbyVisibility : byte
+    public enum LobbyVisibility : byte
     {
         Private,
         Public,

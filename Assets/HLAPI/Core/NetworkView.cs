@@ -9,18 +9,24 @@ namespace HLAPI
     {
         public Component observed;
         public Dictionary<string, RpcHandler> rpcs = new();
-
+        public uint netId { get; private set; }
+        public string assetId;
         public void SerializeView()
         {
-            Message message = new Message((uint)MessageIds.Serialize);
-            observed.SendMessage("OnSerializeNetworkView", message);
+            Message outgoing = new Message((uint)MessageIds.Serialize, true);
+            observed.SendMessage("OnSerializeNetworkView", outgoing);
         }
-        public void SendRPC(string id, SteamId target, Message stream)
+        public void SendRPC(string rpcId, SteamId target, Message stream, P2PSend sendType)
         {
-            SendRPCInternal(id, target, stream.ToArray());
+            SendRPCInternal(rpcId, target, stream, sendType);
         }
-        internal void SendRPCInternal(string id, SteamId target, byte[] stream)
+        internal void SendRPCInternal(string rpcId, SteamId target, Message stream, P2PSend sendType)
         {
+            Message outgoing = new Message((uint)MessageIds.Rpc, true);
+            outgoing.Write(netId);
+            outgoing.Write(rpcId);
+            outgoing.Write(stream.ToArray());
+            NetworkManager.SendMessage(target, outgoing, sendType);
         }
     }
 }
